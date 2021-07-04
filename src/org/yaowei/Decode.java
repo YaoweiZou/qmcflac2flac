@@ -1,4 +1,4 @@
-package com.yaowei;
+package org.yaowei;
 
 /**
  * @author 吴成昊
