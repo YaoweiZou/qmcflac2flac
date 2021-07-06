@@ -9,7 +9,7 @@ import java.util.List;
 
 /**
  * @author yaowei
- * @version 2.0
+ * @version 2.1
  */
 public class Main {
     public static void main(String[] args) {
@@ -86,20 +86,21 @@ public class Main {
 
     /**
      * 解密 qmcflac 文件并输出至磁盘
+     *
      * @param qmcflacFile qmcflac File
      * @return 返回是否成功解密并输出至磁盘。
      */
     public boolean qmcflacDecode(File qmcflacFile) {
-        try {
-            final BufferedInputStream input = new BufferedInputStream(new FileInputStream(qmcflacFile));
+        try (final BufferedInputStream input = new BufferedInputStream(new FileInputStream(qmcflacFile));
+             final BufferedOutputStream output = new BufferedOutputStream(
+                     new FileOutputStream(qmcflacFile.getName().replaceAll(".qmcflac$", ".flac")))
+        ) {
             byte[] bytes = new byte[input.available()];
             input.read(bytes);
             final Decode decode = new Decode();
             for (int i = 0; i < bytes.length; i++) {
                 bytes[i] = (byte) (decode.nextMask() ^ bytes[i]);
             }
-            final BufferedOutputStream output = new BufferedOutputStream(new FileOutputStream(
-                    qmcflacFile.getName().replaceAll(".qmcflac$", ".flac")));
             output.write(bytes);
             return true;
         } catch (IOException e) {
