@@ -1,93 +1,57 @@
 package org.yaowei;
 
-import com.sun.xml.internal.ws.addressing.WsaActionUtil;
-
 import java.io.*;
-import java.net.URL;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
 
 /**
  * @author yaowei
- * @version 2.1
+ * @version 3.0
  */
 public class Main {
     public static void main(String[] args) {
         System.out.println("qmcflac to flac");
         System.out.println("version 3.0");
-        System.out.println("使用：将 jar 与 qmcflac 文件移至同一文件夹内执行 jar 即可，需要 Java 1.8 及以上");
-        System.out.println("\n正在执行，稍等······");
+        System.out.println("使用方法：将 jar 与 qmcflac 文件移至同一文件夹内执行 jar 即可，需要 Java 1.8 及以上");
+        System.out.println("\n正在执行，稍等······\n");
+        // 获取当前目录
         String userDir = System.getProperty("user.dir");
-
-    }
-
-    public static void mainBak(String[] args) {
-                // 获取当前路径 URL 对象
-        final URL location = Main.class.getProtectionDomain().getCodeSource().getLocation();
-        // 获取当前路径父文件
-        File parentFile = null;
+        final File thisDir = new File(userDir);
+        List<File> qmcFiles = null;
         try {
-            parentFile = new File(URLDecoder.decode(location.getPath(), "UTF-8")).getParentFile();
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
-
-        List<File> qmcFileList = null;
-        try {
-            // 获取所有 qmcflac File
-            qmcFileList = getQmcFiles(parentFile);
+            qmcFiles = getQmcFiles(thisDir);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
-
-        int passCount = 0;
-        final ArrayList<String> errorFiles = new ArrayList<>();
-        // 解密所有 qmcflac File并输出至磁盘
-        for (File file : qmcFileList) {
-            final boolean decodeStatus = qmcflacDecode(file);
-            // 解密失败记录文件路径
-            if (decodeStatus) {
-                passCount++;
-            } else {
-                errorFiles.add(file.getPath());
+        assert qmcFiles != null;
+        final int qmcSize = qmcFiles.size();
+        final ArrayList<String> failList = new ArrayList<>();
+        for (File qmcFile : qmcFiles) {
+            final boolean result = qmcflacDecode(qmcFile);
+            if (!result) {
+                failList.add(qmcFile.getAbsolutePath());
             }
         }
-
-        System.out.println("执行完成，共检测到" + qmcFileList.size() +
-                "个 qmcflac 文件，其中解密成功" + passCount +
-                "个。");
-        if (errorFiles.size() > 0) {
-            System.err.println(errorFiles.size() + "个文件未成功解密：");
-            for (String errorFile : errorFiles) {
-                System.out.println(errorFile);
+        System.out.println("程序执行结束，共" + qmcSize + "个 qmc 文件，成功" + (qmcSize - failList.size()) + "个");
+        if (failList.size() > 0) {
+            System.err.println("失败：");
+            for (String failFile : failList) {
+                System.err.println(failFile);
             }
         }
-        System.out.println("");
-    }
-
-    public static void run() {
-
     }
 
     /**
-     * 获取指定 File 对象内所有后缀为 .qmcflac 的 File 对象集合，包括子文件夹。
+     * 获取指定文件夹内所有后缀为 .qmcflac 的 File 对象集合
      *
-     * @param dir 指定 File 对象
-     * @return 返回后缀为 .qmcflac 的 File 对象集合
-     * @throws FileNotFoundException 如果指定 File 不存在、不是文件夹或文件夹内无 File 对象，则抛出异常
+     * @param dir 指定文件夹
+     * @return 包含后缀为 qmcflac 文件的 list
+     * @throws FileNotFoundException 指定文件夹内无文件或无 qmcflac 文件时抛出异常
      */
     public static List<File> getQmcFiles(File dir) throws FileNotFoundException {
-        if (!dir.exists() || dir.isFile()) {
-            throw new FileNotFoundException("路径不存在或不是文件夹");
-        }
         final File[] files = dir.listFiles();
-        if (files == null) {
-            throw new FileNotFoundException("路径内没有文件或文件夹");
+        if (files == null || files.length == 0) {
+            throw new FileNotFoundException("文件夹为空");
         }
         final ArrayList<File> result = new ArrayList<>();
         for (File file : files) {
@@ -98,19 +62,22 @@ public class Main {
                 result.addAll(qmcFile);
             }
         }
+        if (result.size() == 0) {
+            throw new FileNotFoundException("文件夹内找不到 qmcflac 文件");
+        }
         return result;
     }
 
     /**
-     * 解密 qmcflac 文件并输出至磁盘
+     * 解密 qmcflac 文件并写入磁盘
      *
-     * @param qmcflacFile qmcflac File
-     * @return 返回是否成功解密并输出至磁盘。
+     * @param qmcFile qmcflac File
+     * @return 返回是否成功解密并写入磁盘。
      */
-    public static boolean qmcflacDecode(File qmcflacFile) {
-        try (final BufferedInputStream input = new BufferedInputStream(new FileInputStream(qmcflacFile));
+    public static boolean qmcflacDecode(File qmcFile) {
+        try (final BufferedInputStream input = new BufferedInputStream(new FileInputStream(qmcFile));
              final BufferedOutputStream output = new BufferedOutputStream(
-                     new FileOutputStream(qmcflacFile.getName().replaceAll(".qmcflac$", ".flac")))
+                     new FileOutputStream(qmcFile.getName().replaceAll(".qmcflac$", ".flac")))
         ) {
             byte[] bytes = new byte[input.available()];
             input.read(bytes);
@@ -119,10 +86,11 @@ public class Main {
                 bytes[i] = (byte) (decode.nextMask() ^ bytes[i]);
             }
             output.write(bytes);
-            return true;
+            output.flush();
         } catch (IOException e) {
             e.printStackTrace();
+            return false;
         }
-        return false;
+        return true;
     }
 }

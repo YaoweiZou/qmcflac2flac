@@ -1,10 +1,5 @@
 package org.yaowei;
 
-/**
- * @author 吴成昊
- * @date 2019/4/17 17:26
- * @version 0.1
- */
 public class Decode {
     private int x = -1;
     private int y = 8;

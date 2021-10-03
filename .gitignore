@@ -2,6 +2,7 @@
 qmcflac2flac.iml
 
 out
+src/META-INF
 
 *.class
 *.jar
